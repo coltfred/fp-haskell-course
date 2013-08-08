@@ -12,14 +12,15 @@ import Control.Exception hiding (catch)
 import Data.Word
 
 server ::
-  ([ThreadId] -> Accept -> IO ())
+  (Accept -> Accept -> IO ())
   -> IO a
 server f =
-  let hand i s = do u <- accept' s
-                    _ <- forkIO (f i u)
-                    hand i s
-  in do s  <- listenOn (PortNumber 6060)
-        hand [] s `finally` sClose s
+  let hand s = do p1 <- accept' s
+                  p2 <- accept' s
+                  _ <- forkIO (f p1 p2)
+                  hand s
+  in do s <- listenOn (PortNumber 6060)
+        hand s `finally` sClose s
 
 data Accept =
   Accept
