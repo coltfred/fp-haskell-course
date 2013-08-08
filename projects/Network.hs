@@ -17,10 +17,12 @@ server ::
   -> IO a
 server (Game g) =
   let hand s = do p1 <- accept' s
+                  b  <- newEmptyMVar
                   hPutStrLn (handleL `getL` p1) "PLAYER 1"
+                  _ <- forkIO (g p1 b)
                   p2 <- accept' s
                   hPutStrLn (handleL `getL` p2) "PLAYER 2"
-                  _ <- forkIO (g p1 p2)
+                  _ <- forkIO (g p2 b)
                   hand s
   in do s <- listenOn (PortNumber 6060)
         hand s `finally` sClose s
@@ -29,7 +31,7 @@ newtype Game a =
   Game {
     play ::
       Accept
-      -> Accept
+      -> MVar Board
       -> IO a
   }
 
