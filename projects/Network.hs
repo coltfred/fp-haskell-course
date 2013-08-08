@@ -13,32 +13,33 @@ import Control.Exception hiding (catch)
 import Data.Word
 
 server ::
-  Game ()
+  ClientThread IO ()
   -> IO a
-server (Game g) =
-  let hand s = do p1 <- accept' s
-                  b  <- newEmptyMVar
-                  hPutStrLn (handleL `getL` p1) "PLAYER 1"
-                  _ <- forkIO (g p1 b)
-                  p2 <- accept' s
-                  hPutStrLn (handleL `getL` p2) "PLAYER 2"
-                  _ <- forkIO (g p2 b)
-                  hand s
+server (ClientThread g) =
+  let hand t s = do q <- accept' s
+                    i <- forkIO (g t q)
+                    hand (i:t) s
   in do s <- listenOn (PortNumber 6060)
-        hand s `finally` sClose s
+        hand [] s `finally` sClose s
 
-newtype Game a =
-  Game {
+newtype ClientThread f a =
+  ClientThread {
     play ::
-      Accept
-      -> MVar Board
-      -> IO a
+      [ThreadId]
+      -> Accept
+      -> f a
   }
 
+clientThread ::
+  (Accept -> f a)
+  -> ClientThread f a
+clientThread =
+  ClientThread . const . ($)
+
 game ::
-  Game ()
+  ClientThread  IO ()
 game =
-  Game undefined
+  ClientThread undefined
 
 data Accept =
   Accept
