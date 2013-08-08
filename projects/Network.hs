@@ -17,7 +17,9 @@ server ::
   -> IO a
 server (Game g) =
   let hand s = do p1 <- accept' s
+                  hPutStrLn (handleL `getL` p1) "PLAYER 1"
                   p2 <- accept' s
+                  hPutStrLn (handleL `getL` p2) "PLAYER 2"
                   _ <- forkIO (g p1 p2)
                   hand s
   in do s <- listenOn (PortNumber 6060)
