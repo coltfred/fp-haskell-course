@@ -1,6 +1,7 @@
 module Network.Server where
 
 import Structure.Lens
+import Data.TicTacToe
 
 import Network
 import Network.Socket hiding (accept)
@@ -12,15 +13,31 @@ import Control.Exception hiding (catch)
 import Data.Word
 
 server ::
-  (Accept -> Accept -> IO ())
+  Game IO ()
   -> IO a
-server f =
+server (Game g) =
   let hand s = do p1 <- accept' s
                   p2 <- accept' s
-                  _ <- forkIO (f p1 p2)
+                  _ <- forkIO (g p1 p2)
                   hand s
   in do s <- listenOn (PortNumber 6060)
         hand s `finally` sClose s
+
+newtype Game f a =
+  Game {
+    play ::
+      Accept
+      -> Accept
+      -> f a
+  }
+
+game ::
+  Game IO ()
+game =
+  Game (\p1 p2 ->
+    do b <- newMVar empty
+       return ()
+  )
 
 data Accept =
   Accept
