@@ -17,10 +17,8 @@ server ::
   -> IO a
 server (Game g) =
   let hand s = do p1 <- accept' s
-                  b  <- newEmptyMVar
-                  _ <- forkIO (g b player1 p1)
                   p2 <- accept' s
-                  _ <- forkIO (g b player2 p2)
+                  _ <- forkIO (g p1 p2)
                   hand s
   in do s <- listenOn (PortNumber 6060)
         hand s `finally` sClose s
@@ -28,8 +26,7 @@ server (Game g) =
 newtype Game a =
   Game {
     play ::
-      MVar Board
-      -> Player
+      Accept
       -> Accept
       -> IO a
   }
