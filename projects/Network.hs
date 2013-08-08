@@ -30,6 +30,12 @@ newtype ClientThread f a =
       -> f a
   }
 
+clientThread ::
+  (Accept -> f a)
+  -> ClientThread f a
+clientThread =
+  ClientThread . const . ($)
+
 game ::
   ClientThread  IO ()
 game =
