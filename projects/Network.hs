@@ -1,5 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 module Network.Server where
 
 import Structure.Lens
@@ -30,23 +28,23 @@ data Accept =
     PortNumber
   deriving (Eq, Show)
 
-acceptHandleL ::
+handleL ::
   Lens Accept Handle
-acceptHandleL =
+handleL =
   Lens
     (\(Accept _ nam num) hd -> Accept hd nam num)
     (\(Accept hd _ _) -> hd)
 
-acceptHostNameL ::
+hostNameL ::
   Lens Accept HostName
-acceptHostNameL =
+hostNameL =
   Lens
     (\(Accept hd _ num) nam -> Accept hd nam num)
     (\(Accept _ nam _) -> nam)
 
-acceptPortNumberL ::
+portNumberL ::
   Lens Accept PortNumber
-acceptPortNumberL =
+portNumberL =
   Lens
     (\(Accept hd nam _) num -> Accept hd nam num)
     (\(Accept _ _ num) -> num)
