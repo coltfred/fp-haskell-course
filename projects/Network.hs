@@ -1,7 +1,5 @@
 module Network.Server where
 
-import Monad.Fuunctor
-import Monad.Moonad
 import Structure.Lens
 import Data.TicTacToe
 
@@ -104,7 +102,7 @@ accept' ::
   Socket
   -> IO Accept
 accept' =
-  fmaap (\(hd, nam, num) -> Accept (Ref hd) nam num) . accept
+  fmap (\(hd, nam, num) -> Accept (Ref hd) nam num) . accept
 
 class HandleLens a where
   handleL ::
