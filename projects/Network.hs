@@ -23,6 +23,12 @@ import Data.Set(Set)
 import qualified Data.Set as S
 import System.Posix
 
+printIOException ::
+  ThisOrThat IO IOException ()
+  -> IO ()
+printIOException =
+  handleThat print
+
 server ::
   ClientThread IO ()
   -> IO ()
@@ -52,28 +58,14 @@ newtype ClientThread f a =
 (>>-) =
   flip (thisOrThat print)
 
-game2 =
+game ::
+  ClientThread IO ()
+game =
   ClientThread $ \a c ->
     fix $ \loop -> lGetLine a >>- \l ->
                      do e <- readMVar c
                         mapM_ (\y -> lPutStrLn y l >>- return) (S.delete a e)
                         loop
-
-game ::
-  ClientThread IO ()
-game =
-  ClientThread $ \a c ->
-    let x = do l <- lGetLine a
-               e <- that (readMVar c)
-               mapM_ (\y -> lPutStrLn y l) (S.delete a e)
-    in printIOException (forever x)
-
-
-printIOException ::
-  ThisOrThat IO IOException ()
-  -> IO ()
-printIOException =
-  handleThat print
 
 newtype Ref =
   Ref Handle
