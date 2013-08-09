@@ -43,7 +43,9 @@ server (ClientThread g) =
        c <- newMVar S.empty
        hand s c `finally` sClose s
 
-game2 =
+game ::
+  ClientThread IO ()
+game =
   ClientThread $ \a c ->
     fix $ \loop ->
       do k <- try (lGetLine a)
@@ -55,17 +57,7 @@ game2 =
                                                                           eprint x)
                                        ) (S.delete a e)
                                  loop
-{-
-game ::
-  ClientThread IO ()
-game =
-  ClientThread $ \a c ->
-    fix $ \loop -> lGetLine a >>- \l ->
-                     do e <- readMVar c
-                        mapM_ (\y -> thisOrThat eprint return (lPutStrLn y l)) (S.delete a e)
-                        loop
 
--}
 newtype ClientThread f a =
   ClientThread {
     play ::
