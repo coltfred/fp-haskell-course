@@ -1,5 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
-
 module Network.Server where
 
 import Monad.Fuunctor
