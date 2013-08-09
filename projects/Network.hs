@@ -52,7 +52,7 @@ game =
     let x = do l <- lGetLine a
                e <- that (readMVar c)
                mapM_ (\y -> lPutStrLn y l) (S.delete a e)
-    in forever (handleThat (\e -> print (e :: IOException)) x)
+    in (handleThat (\e -> print (e :: IOException)) (forever x))
 
 newtype Ref =
   Ref Handle
