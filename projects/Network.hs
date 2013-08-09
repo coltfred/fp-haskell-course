@@ -1,16 +1,21 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Network.Server where
 
+import Monad.Fuunctor
+import Monad.Moonad
 import Structure.Lens
 import Data.TicTacToe
 
 import Network
-import Network.Socket hiding (accept)
+import Network.Socket hiding (accept, bind)
 
 import Prelude hiding (mapM_, catch)
 import System.IO
 import Control.Concurrent
 import Control.Monad(forever, when)
-import Control.Exception(catch, finally, IOException)
+import Control.Applicative
+import Control.Exception(catch, finally, Exception, IOException)
 import Data.Foldable
 import Data.Function
 import Data.Word
@@ -20,17 +25,17 @@ import System.Posix
 
 server ::
   ClientThread IO ()
-  -> IO a
+  -> IO ()
 server (ClientThread g) =
-  let hand s c = forever $
+  let hand s c = handleThat (\e -> print (e :: IOException)) . forever $
                    do q <- accept' s
                       lSetBuffering q NoBuffering
-                      _ <- modifyMVar_ c (return . S.insert q)
-                      forkIO (g q c)
-  in do withSocketsDo $ do
-          s <- listenOn (PortNumber 6060)
-          c <- newMVar S.empty
-          hand s c `finally` sClose s
+                      _ <- that (modifyMVar_ c (return . S.insert q))
+                      that (forkIO (g q c))
+  in withSocketsDo $ do
+       s <- listenOn (PortNumber 6060)
+       c <- newMVar S.empty
+       hand s c `finally` sClose s
 
 newtype ClientThread f a =
   ClientThread {
@@ -41,13 +46,13 @@ newtype ClientThread f a =
   }
 
 game ::
-  ClientThread  IO ()
+  ClientThread IO ()
 game =
   ClientThread $ \a c ->
     let x = do l <- lGetLine a
-               e <- readMVar c
+               e <- that (readMVar c)
                mapM_ (\y -> lPutStrLn y l) (S.delete a e)
-    in forever x
+    in forever (handleThat (\e -> print (e :: IOException)) x)
 
 newtype Ref =
   Ref Handle
@@ -86,10 +91,11 @@ portNumberL =
     (\(Accept _ _ num) -> num)
 
 accept' ::
+  Exception e =>
   Socket
-  -> IO Accept
+  -> ThisOrThat IO e Accept
 accept' =
-  fmap (\(hd, nam, num) -> Accept (Ref hd) nam num) . accept
+  fmaap (\(hd, nam, num) -> Accept (Ref hd) nam num) . tcatch . accept
 
 class HandleLens a where
   handleL ::
@@ -108,45 +114,128 @@ instance HandleLens Accept where
     refL .@ handleL
 
 lGetLine ::
-  HandleLens h =>
+  (Exception e, HandleLens h) =>
   h
-  -> IO String
+  -> ThisOrThat IO e String
 lGetLine h =
-  hGetLine (handleL `getL` h)
+  tcatch (hGetLine (handleL `getL` h))
 
 lPutStrLn ::
-  HandleLens h =>
+  (Exception e, HandleLens h) =>
   h
   -> String
-  -> IO ()
+  -> ThisOrThat IO e ()
 lPutStrLn h =
-  hPutStrLn (handleL `getL` h)
+  tcatch . hPutStrLn (handleL `getL` h)
 
 lClose ::
-  HandleLens h =>
+  (Exception e, HandleLens h) =>
   h
-  -> IO ()
+  -> ThisOrThat IO e ()
 lClose h =
-  hClose (handleL `getL` h)
+  tcatch (hClose (handleL `getL` h))
 
 lSetBuffering ::
-  HandleLens h =>
+  (Exception e, HandleLens h) =>
   h
   -> BufferMode
-  -> IO ()
+  -> ThisOrThat IO e ()
 lSetBuffering h =
-  hSetBuffering (handleL `getL` h)
+  tcatch . hSetBuffering (handleL `getL` h)
 
-lIsWritable ::
-  HandleLens a =>
-  a
-  -> IO Bool
-lIsWritable h =
-  hIsWritable (handleL `getL` h)
+-- EitherT
+newtype ThisOrThat f a b =
+  ThisOrThat (
+    f (Either a b)
+  )
 
-lIsReadable ::
-  HandleLens a =>
-  a
-  -> IO Bool
-lIsReadable h =
-  hIsWritable (handleL `getL` h)
+thisOrThat ::
+  Moonad f =>
+  (a -> f x)
+  -> (b -> f x)
+  -> ThisOrThat f a b
+  -> f x
+thisOrThat f g (ThisOrThat x) =
+  bind (either f g) x
+
+handleThis ::
+  Moonad f =>
+  (b -> f a)
+  -> ThisOrThat f a b
+  -> f a
+handleThis =
+  thisOrThat reeturn
+
+handleThat ::
+  Moonad f =>
+  (a -> f b)
+  -> ThisOrThat f a b
+  -> f b
+handleThat f =
+  thisOrThat f reeturn
+
+isThis ::
+  Fuunctor f =>
+  ThisOrThat f a b
+  -> f Bool
+isThis (ThisOrThat x) =
+  fmaap (either (const True) (const False)) x
+
+isThat ::
+  Fuunctor f =>
+  ThisOrThat f a b
+  -> f Bool
+isThat =
+  fmaap not . isThis
+
+this ::
+  Fuunctor f =>
+  f a
+  -> ThisOrThat f a b
+this =
+  ThisOrThat . fmaap Left
+
+that ::
+  Fuunctor f =>
+  f b
+  -> ThisOrThat f a b
+that =
+  ThisOrThat . fmaap Right
+
+swap ::
+  Fuunctor f =>
+  ThisOrThat f a b
+  -> ThisOrThat f b a
+swap (ThisOrThat x) =
+  ThisOrThat (fmaap (either Right Left) x)
+
+(~.) ::
+  Fuunctor f =>
+  (ThisOrThat f b a -> ThisOrThat f b a)
+  -> ThisOrThat f a b
+  -> ThisOrThat f a b
+(~.) f =
+  swap . f . swap
+
+instance Fuunctor f => Fuunctor (ThisOrThat f a) where
+  fmaap f (ThisOrThat x) =
+    ThisOrThat (fmaap (fmap f) x)
+
+instance Moonad f => Moonad (ThisOrThat f a) where
+  reeturn =
+    ThisOrThat . reeturn . Right
+  bind f (ThisOrThat x) =
+    ThisOrThat (bind (either (reeturn . Left) (\r -> let ThisOrThat q = f r in q)) x)
+
+instance Monad f => Monad (ThisOrThat f a) where
+  return =
+    ThisOrThat . return . Right
+  ThisOrThat x >>= f =
+    ThisOrThat (x >>= either (return . Left) (\r -> let ThisOrThat q = f r in q))
+
+tcatch ::
+  Exception e =>
+  IO a
+  -> ThisOrThat IO e a
+tcatch x =
+  ThisOrThat (catch (fmaap Right x) (\e -> return (Left e)))
