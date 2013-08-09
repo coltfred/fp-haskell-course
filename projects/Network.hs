@@ -9,26 +9,28 @@ import Network.Socket hiding (accept)
 import Prelude hiding (mapM_, catch)
 import System.IO
 import Control.Concurrent
-import Control.Monad(forever, when)
+import Control.Monad(forever, when, void)
 import Control.Exception(catch, finally, IOException)
 import Data.Foldable
 import Data.Function
 import Data.Word
 import Data.Set(Set)
 import qualified Data.Set as S
+import System.Posix
 
 server ::
   ClientThread IO ()
   -> IO a
 server (ClientThread g) =
-  let hand s c = do q <- accept' s
-                    lSetBuffering q NoBuffering
-                    _ <- modifyMVar_ c (\r -> return (S.insert q r))
-                    _ <- forkIO (g q c)
-                    hand s (c)
-  in do s <- listenOn (PortNumber 6060)
-        c <- newMVar S.empty
-        hand s c `finally` sClose s
+  let hand s c = forever $
+                   do q <- accept' s
+                      lSetBuffering q NoBuffering
+                      _ <- modifyMVar_ c (\r -> return (S.insert q r))
+                      void (forkIO (g q c))
+  in do withSocketsDo $ do
+          s <- listenOn (PortNumber 6060)
+          c <- newMVar S.empty
+          hand s c `finally` sClose s
 
 newtype ClientThread f a =
   ClientThread {
