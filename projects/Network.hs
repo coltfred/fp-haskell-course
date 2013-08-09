@@ -15,7 +15,7 @@ import System.IO
 import Control.Concurrent
 import Control.Monad(forever, when)
 import Control.Applicative
-import Control.Exception(catch, finally, Exception, IOException)
+import Control.Exception(catch, finally, try, Exception, IOException)
 import Data.Foldable
 import Data.Function
 import Data.Word
@@ -46,8 +46,15 @@ server (ClientThread g) =
 game2 =
   ClientThread $ \a c ->
     fix $ \loop ->
-      do l <- lGetLine a
-         undefined
+      do k <- try (lGetLine a)
+         case k of Left e -> eprint e
+                   Right [] -> loop
+                   Right l -> do e <- readMVar c
+                                 mapM_ (\y ->
+                                          catch (lPutStrLn y l) (\x -> do _ <- modifyMVar_ c (return . S.delete y)
+                                                                          eprint x)
+                                       ) (S.delete a e)
+                                 loop
 {-
 game ::
   ClientThread IO ()
@@ -250,3 +257,4 @@ tcatch ::
   -> ThisOrThat IO e a
 tcatch x =
   ThisOrThat (catch (fmaap Right x) (\e -> return (Left e)))
+
