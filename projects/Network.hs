@@ -42,11 +42,9 @@ game ::
   ClientThread  IO ()
 game =
   ClientThread $ \a c ->
-    let x = do r <- lIsReadable a
-               when r $
-                 do l <- lGetLine a
-                    e <- readMVar c
-                    mapM_ (\y -> lIsWritable y >>= \p -> when p $ lPutStrLn y l) (S.delete a e)
+    let x = do l <- lGetLine a
+               e <- readMVar c
+               mapM_ (\y -> lIsWritable y >>= \p -> when p $ lPutStrLn y l) (S.delete a e)
     in forever x
 
 newtype Ref =
