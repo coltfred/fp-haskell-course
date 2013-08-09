@@ -27,7 +27,7 @@ server ::
   ClientThread IO ()
   -> IO ()
 server (ClientThread g) =
-  let hand s c = handleThat (\e -> print (e :: IOException)) . forever $
+  let hand s c = printIOException . forever $
                    do q <- accept' s
                       lSetBuffering q NoBuffering
                       _ <- that (modifyMVar_ c (return . S.insert q))
@@ -52,7 +52,14 @@ game =
     let x = do l <- lGetLine a
                e <- that (readMVar c)
                mapM_ (\y -> lPutStrLn y l) (S.delete a e)
-    in (handleThat (\e -> print (e :: IOException)) (forever x))
+    in printIOException (forever x)
+
+
+printIOException ::
+  ThisOrThat IO IOException ()
+  -> IO ()
+printIOException =
+  handleThat print
 
 newtype Ref =
   Ref Handle
