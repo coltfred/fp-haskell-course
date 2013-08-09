@@ -9,7 +9,7 @@ import Network.Socket hiding (accept)
 import Prelude hiding (mapM_, catch)
 import System.IO
 import Control.Concurrent
-import Control.Monad(forever, when, void)
+import Control.Monad(forever, when)
 import Control.Exception(catch, finally, IOException)
 import Data.Foldable
 import Data.Function
@@ -25,8 +25,8 @@ server (ClientThread g) =
   let hand s c = forever $
                    do q <- accept' s
                       lSetBuffering q NoBuffering
-                      _ <- modifyMVar_ c (\r -> return (S.insert q r))
-                      void (forkIO (g q c))
+                      _ <- modifyMVar_ c (return . S.insert q)
+                      forkIO (g q c)
   in do withSocketsDo $ do
           s <- listenOn (PortNumber 6060)
           c <- newMVar S.empty
