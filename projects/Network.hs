@@ -23,17 +23,17 @@ import Data.Set(Set)
 import qualified Data.Set as S
 import System.Posix
 
-printIOException ::
-  ThisOrThat IO IOException ()
+eprint ::
+  IOException
   -> IO ()
-printIOException =
-  handleThat print
+eprint =
+  print
 
 server ::
   ClientThread IO ()
   -> IO ()
 server (ClientThread g) =
-  let hand s c = printIOException . forever $
+  let hand s c = handleThat eprint . forever $
                    do q <- accept' s
                       lSetBuffering q NoBuffering
                       _ <- that (modifyMVar_ c (return . S.insert q))
@@ -64,7 +64,7 @@ game =
   ClientThread $ \a c ->
     fix $ \loop -> lGetLine a >>- \l ->
                      do e <- readMVar c
-                        mapM_ (\y -> lPutStrLn y l >>- return) (S.delete a e)
+                        mapM_ (\y -> thisOrThat eprint return (lPutStrLn y l)) (S.delete a e)
                         loop
 
 newtype Ref =
