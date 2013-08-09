@@ -45,6 +45,20 @@ newtype ClientThread f a =
       -> f a
   }
 
+(>>-) ::
+  ThisOrThat IO IOException a
+  -> (a -> IO ())
+  -> IO ()
+(>>-) =
+  flip (thisOrThat print)
+
+game2 =
+  ClientThread $ \a c ->
+    fix $ \loop -> lGetLine a >>- \l ->
+                     do e <- readMVar c
+                        mapM_ (\y -> lPutStrLn y l >>- return) (S.delete a e)
+                        loop
+
 game ::
   ClientThread IO ()
 game =
