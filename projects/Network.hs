@@ -154,3 +154,99 @@ lSetBuffering ::
   -> IO ()
 lSetBuffering h =
   hSetBuffering (handleL `getL` h)
+-- EitherT
+newtype ThisOrThat f a b =
+  ThisOrThat (
+    f (Either a b)
+  )
+
+thisOrThat ::
+  Moonad f =>
+  (a -> f x)
+  -> (b -> f x)
+  -> ThisOrThat f a b
+  -> f x
+thisOrThat f g (ThisOrThat x) =
+  bind (either f g) x
+
+handleThis ::
+  Moonad f =>
+  (b -> f a)
+  -> ThisOrThat f a b
+  -> f a
+handleThis =
+  thisOrThat reeturn
+
+handleThat ::
+  Moonad f =>
+  (a -> f b)
+  -> ThisOrThat f a b
+  -> f b
+handleThat f =
+  thisOrThat f reeturn
+
+isThis ::
+  Fuunctor f =>
+  ThisOrThat f a b
+  -> f Bool
+isThis (ThisOrThat x) =
+  fmaap (either (const True) (const False)) x
+
+isThat ::
+  Fuunctor f =>
+  ThisOrThat f a b
+  -> f Bool
+isThat =
+  fmaap not . isThis
+
+this ::
+  Fuunctor f =>
+  f a
+  -> ThisOrThat f a b
+this =
+  ThisOrThat . fmaap Left
+
+that ::
+  Fuunctor f =>
+  f b
+  -> ThisOrThat f a b
+that =
+  ThisOrThat . fmaap Right
+
+swap ::
+  Fuunctor f =>
+  ThisOrThat f a b
+  -> ThisOrThat f b a
+swap (ThisOrThat x) =
+  ThisOrThat (fmaap (either Right Left) x)
+
+(~.) ::
+  Fuunctor f =>
+  (ThisOrThat f b a -> ThisOrThat f b a)
+  -> ThisOrThat f a b
+  -> ThisOrThat f a b
+(~.) f =
+  swap . f . swap
+
+instance Fuunctor f => Fuunctor (ThisOrThat f a) where
+  fmaap f (ThisOrThat x) =
+    ThisOrThat (fmaap (fmap f) x)
+
+instance Moonad f => Moonad (ThisOrThat f a) where
+  reeturn =
+    ThisOrThat . reeturn . Right
+  bind f (ThisOrThat x) =
+    ThisOrThat (bind (either (reeturn . Left) (\r -> let ThisOrThat q = f r in q)) x)
+
+instance Monad f => Monad (ThisOrThat f a) where
+  return =
+    ThisOrThat . return . Right
+  ThisOrThat x >>= f =
+    ThisOrThat (x >>= either (return . Left) (\r -> let ThisOrThat q = f r in q))
+
+tcatch ::
+  Exception e =>
+  IO a
+  -> ThisOrThat IO e a
+tcatch x =
+  ThisOrThat (catch (fmaap Right x) (\e -> return (Left e)))
