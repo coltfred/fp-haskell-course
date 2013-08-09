@@ -21,40 +21,33 @@ server ::
   ClientThread IO ()
   -> IO a
 server (ClientThread g) =
-  let hand t s c = do q <- accept' s
-                      lSetBuffering q NoBuffering
-                      _ <- modifyMVar_ c (\r -> return (S.insert q r))
-                      i <- forkIO (g t q c)
-                      hand (i:t) s (c)
+  let hand s c = do q <- accept' s
+                    lSetBuffering q NoBuffering
+                    _ <- modifyMVar_ c (\r -> return (S.insert q r))
+                    _ <- forkIO (g q c)
+                    hand s (c)
   in do s <- listenOn (PortNumber 6060)
         c <- newMVar S.empty
-        hand [] s c `finally` sClose s
+        hand s c `finally` sClose s
 
 newtype ClientThread f a =
   ClientThread {
     play ::
-      [ThreadId]
-      -> Accept
+      Accept
       -> MVar (Set Accept)
       -> f a
   }
 
-clientThread ::
-  (Accept -> MVar (Set Accept) -> f a)
-  -> ClientThread f a
-clientThread =
-  ClientThread . const . ($)
-
 game ::
   ClientThread  IO ()
 game =
-  ClientThread $ \_ a c ->
+  ClientThread $ \a c ->
     let x = do r <- lIsReadable a
                when r $
                  do l <- lGetLine a
                     e <- readMVar c
                     mapM_ (\y -> lIsWritable y >>= \p -> when p $ lPutStrLn y l) (S.delete a e)
-    in catch x (\e -> print (e :: IOException))
+    in forever x
 
 newtype Ref =
   Ref Handle
@@ -128,6 +121,13 @@ lPutStrLn ::
   -> IO ()
 lPutStrLn h =
   hPutStrLn (handleL `getL` h)
+
+lClose ::
+  HandleLens h =>
+  h
+  -> IO ()
+lClose h =
+  hClose (handleL `getL` h)
 
 lSetBuffering ::
   HandleLens h =>
