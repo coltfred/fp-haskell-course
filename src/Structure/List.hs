@@ -56,8 +56,8 @@ headOr ::
   a
   -> List a
   -> a
-headOr =
-  error "todo"
+headOr x Nil = x
+headOr _ (a :. _) = a
 
 -- Exercise 2
 -- Relative Difficulty: 2
@@ -75,8 +75,8 @@ headOr =
 suum ::
   List Int
   -> Int
-suum =
-  error "todo"
+suum =  foldLeft (+) 0 
+
 
 -- Exercise 3
 -- Relative Difficulty: 2
@@ -94,8 +94,7 @@ suum =
 len ::
   List a
   -> Int
-len =
-  error "todo"
+len = foldLeft ((\acc _ -> acc + 1)) 0
 
 -- Exercise 4
 -- Relative Difficulty: 5
@@ -114,8 +113,9 @@ maap ::
   (a -> b)
   -> List a
   -> List b
-maap =
-  error "todo"
+maap f = foldRight (\a acc -> f a :. acc) Nil
+--maap _ Nil = Nil
+--maap f (a :. rest) = f a :. (maap f rest)
 
 -- Exercise 5
 -- Relative Difficulty: 5
@@ -136,8 +136,8 @@ fiilter ::
   (a -> Bool)
   -> List a
   -> List a
-fiilter =
-  error "todo"
+fiilter _ Nil = Nil
+fiilter f (hd :. rest) = if(f(hd)) then hd :. fiilter f rest else fiilter f rest 
 
 -- Exercise 6
 -- Relative Difficulty: 5
@@ -158,8 +158,7 @@ append ::
   List a
   -> List a
   -> List a
-append =
-  error "todo"
+append = flip $ foldRight (:.)
 
 -- Exercise 7
 -- Relative Difficulty: 5
@@ -177,8 +176,7 @@ append =
 flatten ::
   List (List a)
   -> List a
-flatten =
-  error "todo"
+flatten = foldLeft(append) Nil
 
 -- Exercise 8
 -- Relative Difficulty: 7
@@ -197,8 +195,7 @@ flatMap ::
   (a -> List b)
   -> List a
   -> List b
-flatMap =
-  error "todo"
+flatMap f = flatten . (maap f) 
 
 -- Exercise 9
 -- Relative Difficulty: 8
@@ -214,8 +211,8 @@ flatMap =
 seqOptional ::
   List (Optional a)
   -> Optional (List a)
-seqOptional =
-  error "todo"
+
+seqOptional = foldLeft (\acc x -> acc `bindOptional` (\accList ->  x `bindOptional` (\item -> Full (item :. accList)) )) (Full Nil)
 
 -- Exercise 10
 -- Relative Difficulty: 10
@@ -233,7 +230,6 @@ seqOptional =
 rev ::
   List a
   -> List a
-rev =
-  error "todo"
+rev = foldLeft(flip (:.)) Nil
 
 -- END Exercises
