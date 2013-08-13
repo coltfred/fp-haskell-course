@@ -63,7 +63,7 @@ instance Fuunctor ((->) t) where
 -- >>> fmaap reverse (putStr "hi" >> return "abc")
 -- hi"cba"
 instance Fuunctor IO where
-  fmaap = fmap
+  fmaap f io = io >>= return . f  
 
 -----------------------
 -- SUPPORT LIBRARIES --
