@@ -4,7 +4,6 @@ import Intro.Id
 import Intro.Optional
 import Structure.List
 
-
 class Moonad m where
   bind ::
     (a -> m b)
@@ -83,10 +82,8 @@ instance Moonad Optional where
 --
 -- prop> reeturn x y == x
 instance Moonad ((->) t) where
-  bind =
-    error "todo"
-  reeturn =
-    error "todo"
+  bind = error "todo"
+  reeturn = const 
 
 -- Exercise 11
 -- Relative Difficulty: 2
@@ -95,10 +92,8 @@ instance Moonad ((->) t) where
 --
 -- /Tip:/ Use standard library functions. This is not cheating.
 instance Moonad IO where
-  bind =
-    error "todo"
-  reeturn =
-    error "todo"
+  bind = (=<<)
+  reeturn = return
 
 -- Exercise 12
 -- Relative Difficulty: 2
@@ -120,7 +115,7 @@ flaatten ::
   Moonad m =>
   m (m a)
   -> m a
-flaatten = bind (\x -> bind (\xx -> reeturn xx) x)
+flaatten = bind id
 
 -- Exercise 13
 -- Relative Difficulty: 10
@@ -152,8 +147,7 @@ apply ::
   m (a -> b)
   -> m a
   -> m b
-apply =
-  error "todo"
+apply mf ma = bind (\f -> fmaap' f ma) mf
 
 -- Exercise 14
 -- Relative Difficulty: 6
