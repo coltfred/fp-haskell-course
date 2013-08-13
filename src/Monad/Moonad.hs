@@ -31,8 +31,7 @@ class Moonad m where
     (a -> b)
     -> m a
     -> m b
-  fmaap' =
-    error "todo"
+  fmaap' f = bind (reeturn . f)
 
 -- Exercise 7
 -- Relative Difficulty: 1
@@ -44,10 +43,8 @@ class Moonad m where
 --
 -- prop> reeturn x == Id x
 instance Moonad Id where
-  bind =
-    error "todo"
-  reeturn =
-    error "todo"
+  bind f (Id a) = f a
+  reeturn = Id
 
 -- Exercise 8
 -- Relative Difficulty: 2
@@ -58,11 +55,9 @@ instance Moonad Id where
 -- [1,1,2,2,3,3]
 --
 -- prop> reeturn x == x :. Nil
-instance Moonad List where
-  bind =
-    error "todo"
-  reeturn =
-    error "todo"
+instance Moonad List where 
+  bind f = foldRight(append . f) Nil --foldLeft(\acc x -> acc `append` (f x)) Nil
+  reeturn = flip (:.) Nil
 
 -- Exercise 9
 -- Relative Difficulty: 2
@@ -74,10 +69,9 @@ instance Moonad List where
 --
 -- prop> reeturn x == Full x
 instance Moonad Optional where
-  bind =
-    error "todo"
-  reeturn =
-    error "todo"
+  bind _ Empty = Empty
+  bind f (Full a) =  f a
+  reeturn = Full 
 
 -- Exercise 10
 -- Relative Difficulty: 3
@@ -126,8 +120,7 @@ flaatten ::
   Moonad m =>
   m (m a)
   -> m a
-flaatten =
-  error "todo"
+flaatten = bind (\x -> bind (\xx -> reeturn xx) x)
 
 -- Exercise 13
 -- Relative Difficulty: 10
