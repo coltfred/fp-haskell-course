@@ -82,7 +82,7 @@ instance Moonad Optional where
 --
 -- prop> reeturn x y == x
 instance Moonad ((->) t) where
-  bind = error "todo"
+  bind f ff x= f (ff x) x
   reeturn = const 
 
 -- Exercise 11
@@ -178,8 +178,7 @@ lift2 ::
   -> m a
   -> m b
   -> m c
-lift2 =
-  error "todo"
+lift2 f =  apply . fmaap' f
 
 -- Exercise 15
 -- Relative Difficulty: 6
@@ -214,14 +213,13 @@ lift3 ::
   -> m b
   -> m c
   -> m d
-lift3 =
-  error "todo"
+lift3 f ma mb = apply (lift2 f ma mb)
 
 -- Exercise 16
 -- Relative Difficulty: 6
 -- (bonus: use apply + lift3)
 --
--- | Apply a ternary function in the Moonad environment.
+-- | Apply a quaternary function in the Moonad environment.
 --
 -- >>> lift4 (\a b c d -> a + b + c + d) (Id 7) (Id 8) (Id 9) (Id 10)
 -- Id 34
@@ -251,8 +249,7 @@ lift4 ::
   -> m c
   -> m d
   -> m e
-lift4 =
-  error "todo"
+lift4 f ma mb mc = apply (lift3 f ma mb mc)
 
 -- Exercise 17
 -- Relative Difficulty: 3
