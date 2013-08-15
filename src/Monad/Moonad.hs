@@ -274,8 +274,9 @@ seequence ::
   Moonad m =>
   [m a]
   -> m [a]
-seequence =
-  error "todo"
+seequence = foldr(lift2(:))(reeturn [])
+--Old solution
+--foldr(\x acc -> bind(\xma ->  fmaap' ((:) xma) acc) x ) (reeturn [] )
 
 -- Exercise 18
 -- Relative Difficulty: 3
@@ -301,8 +302,7 @@ traaverse ::
   (a -> m b)
   -> [a]
   -> m [b]
-traaverse =
-  error "todo"
+traaverse f = foldr(\x acc -> bind(\xacc -> fmaap' (flip (:) xacc) (f x) ) acc) (reeturn [])
 
 -- Exercise 19
 -- Relative Difficulty: 4
@@ -325,8 +325,7 @@ reeplicate ::
   Int
   -> m a
   -> m [a]
-reeplicate =
-  error "todo"
+reeplicate x = seequence . (replicate x)
 
 -- Exercise 20
 -- Relative Difficulty: 9
