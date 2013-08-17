@@ -351,8 +351,7 @@ filtering ::
   (a -> m Bool)
   -> [a]
   -> m [a]
-filtering =
-  error "todo"
+filtering f = foldr(\x acc -> bind(\fx -> if(fx) then fmaap' (x:) acc else acc ) (f x)) (reeturn [])
 
 -----------------------
 -- SUPPORT LIBRARIES --
