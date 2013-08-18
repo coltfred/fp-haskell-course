@@ -30,8 +30,7 @@ newtype State s a =
 -- >>> runState (fmaap (+1) (reeturn 0)) 0
 -- (1,0)
 instance Fuunctor (State s) where
-  fmaap =
-      error "todo"
+  fmaap f (State s) = State(\ss -> let (a, ns) = s ss in (f(a), ns))
 
 -- Exercise 2
 -- Relative Difficulty: 3
@@ -45,10 +44,8 @@ instance Fuunctor (State s) where
 -- >>> runState (bind (const $ put 2) (put 1)) 0
 -- ((),2)
 instance Moonad (State s) where
-  bind =
-    error "todo"
-  reeturn =
-    error "todo"
+  bind f (State sa) = State(\sb -> let (a, ns) = sa sb in runState (f a) ns)
+  reeturn a = State(\s -> (a, s))
 
 -- Exercise 3
 -- Relative Difficulty: 1
@@ -59,8 +56,7 @@ exec ::
   State s a
   -> s
   -> s
-exec =
-  error "todo"
+exec sa = snd . runState sa
 
 -- Exercise 4
 -- Relative Difficulty: 1
@@ -72,8 +68,7 @@ eval ::
   State s a
   -> s
   -> a
-eval =
-  error "todo"
+eval sa = fst . runState sa
 
 -- Exercise 5
 -- Relative Difficulty: 2
@@ -84,8 +79,7 @@ eval =
 -- (0,0)
 get ::
   State s s
-get =
-  error "todo"
+get = State(\s -> (s,s))
 
 -- Exercise 6
 -- Relative Difficulty: 2
@@ -97,8 +91,7 @@ get =
 put ::
   s
   -> State s ()
-put =
-  error "todo"
+put s = State(\_ -> ((),s)) 
 
 -- Exercise 7
 -- Relative Difficulty: 5
