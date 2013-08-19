@@ -115,8 +115,8 @@ findM ::
   (a -> f Bool)
   -> List a
   -> f (Optional a)
-findM =
-  error "todo"
+findM _ Nil = reeturn Empty
+findM ff (hd :. t) = bind(\x -> if x then reeturn $ Full hd else findM ff t ) (ff hd)
 
 -- Exercise 8
 -- Relative Difficulty: 4
